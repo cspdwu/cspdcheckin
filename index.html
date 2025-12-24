@@ -30,7 +30,7 @@
         #camera-container, #preview-container { position: relative; background-color: #000; border-radius: 8px; overflow: hidden; aspect-ratio: 16 / 12; display: flex; align-items: center; justify-content: center; }
         #video, #preview { width: 100%; height: 100%; object-fit: cover; }
         .hidden { display: none; }
-        .swal2-html-container a { color: #1a73e8; text-decoration: underline; font-weight: bold; }
+        /* ลบ CSS ของลิงค์ swal เดิมออก เพราะไม่ได้ใช้แล้ว */
     </style>
 </head>
 <body class="flex items-center justify-center min-h-screen p-4">
@@ -41,7 +41,6 @@
             <h1 class="text-2xl font-bold text-gray-800">ศูนย์ส่งเสริมและพัฒนานักศึกษา</h1>
             <p class="text-gray-600">ระบบบันทึกการเข้าร่วมกิจกรรม</p>
 
-            <!-- แบนเนอร์เตือน in-app browser --> 
             <div id="iabBanner" class="hidden mt-3 w-full text-center bg-yellow-50 text-yellow-800 border border-yellow-200 rounded-lg p-3 text-sm"> ตรวจพบว่านักศึกษาเปิดลิงก์ผ่านแอป (เช่น LINE/Facebook) 
                 <p><b>ซึ่งอาจบล็อกกล้อง/โลเคชัน</b></p> 
                 <p><b>แนะนำให้คัดลอกลิงค์ไปเปิดด้วย Safari/Chrome</b><br/></p> 
@@ -292,6 +291,7 @@
 
             fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', cache: 'no-cache', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(formData) })
             .then(() => {
+                // --- ส่วนที่แก้ไข: ปรับแต่งข้อความและปุ่มปิด Popup ---
                 Swal.fire({
                   icon: 'success',
                   title: 'บันทึกการเข้าร่วมกิจกรรมสำเร็จ',
@@ -300,18 +300,18 @@
                       <b>ชื่อ-สกุล:</b> ${fullNameInput.value}<br>
                       <b>เวลา:</b> ${new Date().toTimeString().split(' ')[0]}
                     </div>
-                    <a id="goSurveyBtn" class="swal2-confirm swal2-styled" style="display:inline-block;margin-top:12px; cursor:pointer;">
-                      คลิก!ทำแบบประเมินเพื่อรับคะแนนความดี
-                    </a>
+                    <div style="margin-top:15px; color:#c0392b; font-weight:bold; font-size:1.1rem;">
+                        อย่าลืมทำแบบประเมินเสร็จกิจกรรม
+                    </div>
                   `,
-                  showConfirmButton: false,
-                  allowOutsideClick: false,
-                  didOpen: () => {
-                    document.getElementById('goSurveyBtn').addEventListener('click', () => {
-                      window.location.replace('https://docs.google.com/forms/d/e/1FAIpQLSda8bZEM5EQOBhaAzya345u-qhWQO9JtaUckza82VFH-9JPJA/viewform?usp=sharing&ouid=101522226068401386105');
-                    });
-                  }
+                  showConfirmButton: true, // เปิดปุ่ม
+                  confirmButtonText: 'ปิดหน้าต่าง', // ข้อความบนปุ่ม
+                  confirmButtonColor: '#FFC107', // สีปุ่ม (สีเดียวกับธีมเว็บ)
+                  color: '#333',
+                  allowOutsideClick: false
                 });
+                // ------------------------------------------------
+
                 form.reset();
                 base64Image = null;
                 previewImg.src = 'https://placehold.co/400x300/FFF8E1/9E9E9E?text=รอเปิดกล้อง';
