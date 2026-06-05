@@ -30,7 +30,6 @@
         #camera-container, #preview-container { position: relative; background-color: #000; border-radius: 8px; overflow: hidden; aspect-ratio: 16 / 12; display: flex; align-items: center; justify-content: center; }
         #video, #preview { width: 100%; height: 100%; object-fit: cover; }
         .hidden { display: none; }
-        /* ลบ CSS ของลิงค์ swal เดิมออก เพราะไม่ได้ใช้แล้ว */
     </style>
 </head>
 <body class="flex items-center justify-center min-h-screen p-4">
@@ -291,24 +290,28 @@
 
             fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', cache: 'no-cache', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(formData) })
             .then(() => {
-                // --- ส่วนที่แก้ไข: ปรับแต่งข้อความและปุ่มปิด Popup ---
+                // --- ส่วนที่แก้ไข: แสดงผลชื่อ, เวลา และบังคับให้คลิกลิงก์ประเมินผลโดยซ่อนปุ่มปิดหน้าต่าง ---
                 Swal.fire({
                   icon: 'success',
                   title: 'บันทึกการเข้าร่วมกิจกรรมสำเร็จ',
                   html: `
-                    <div style="text-align:left;line-height:1.6;margin:1em 0;">
+                    <div style="text-align:left; line-height:1.6; margin: 1em 0; padding: 10px; background-color: #f9f9f9; border-radius: 8px;">
                       <b>ชื่อ-สกุล:</b> ${fullNameInput.value}<br>
-                      <b>เวลา:</b> ${new Date().toTimeString().split(' ')[0]}
+                      <b>เวลา:</b> ${new Date().toTimeString().split(' ')[0]} น.
                     </div>
-                    <div style="margin-top:15px; color:#c0392b; font-weight:bold; font-size:1.1rem;">
-                        อย่าลืมทำแบบประเมินเสร็จกิจกรรม
+                    <div style="margin-top:20px; text-align:center;">
+                      <p style="font-weight:bold; color:#2c3e50; margin-bottom:12px;">
+                        เพื่อให้บันทึกการเข้าร่วมกิจกรรมอย่างสมบูรณ์ <br>กรุณาทำแบบประเมินที่ลิงก์ด้านล่างนี้
+                      </p>
+                      <a href="https://forms.gle/biY5zSiC6aCe3qK87" target="_blank" 
+                         style="display:inline-block; padding:12px 24px; color:white; background-color:#3498db; border-radius:30px; text-decoration:none; font-weight:bold; box-shadow:0 4px 6px rgba(0,0,0,0.1); transition:all 0.3s;">
+                         คลิกเพื่อทำแบบประเมิน
+                      </a>
                     </div>
                   `,
-                  showConfirmButton: true, // เปิดปุ่ม
-                  confirmButtonText: 'ปิดหน้าต่าง', // ข้อความบนปุ่ม
-                  confirmButtonColor: '#FFC107', // สีปุ่ม (สีเดียวกับธีมเว็บ)
-                  color: '#333',
-                  allowOutsideClick: false
+                  showConfirmButton: false, // เอาปุ่มยืนยัน / ปุ่มปิดหน้าต่างออก
+                  allowOutsideClick: false,  // ป้องกันการคลิกพื้นที่ว่างรอบๆ เพื่อปิดแจ้งเตือน
+                  allowEscapeKey: false      // ป้องกันการกดปุ่ม Esc เพื่อปิดแจ้งเตือน
                 });
                 // ------------------------------------------------
 
