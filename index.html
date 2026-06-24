@@ -16,13 +16,12 @@
         .theme-bg-pink { background-color: #FFECF4; }
         .theme-btn { background-color: #FFC107; color: #424242; transition: all 0.3s ease; }
         .theme-btn:hover { background-color: #FFA000; transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        .theme-btn:disabled { background-color: #E0E0E0; cursor: not-allowed; transform: none; box-shadow: none; color: #9E9E9E; }
+        .theme-btn:disabled { background-color: #E0E0E0; cursor: not-allowed; transform: none; box-shadow: none; }
         .theme-btn-secondary { background-color: #f1f1f1; color: #424242; border: 1px solid #ddd; }
         .theme-btn-secondary:hover { background-color: #e7e7e7; }
         .card { background-color: white; border-radius: 16px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1); overflow: hidden; }
         .form-input, .form-select, .form-radio { border-color: #E0E0E0; transition: border-color 0.3s ease, box-shadow 0.3s ease; }
         .form-input:focus, .form-select:focus, .form-radio:focus { border-color: #FFC107; box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.3); outline: none; }
-        .form-input:disabled, .form-select:disabled { background-color: #f5f5f5; cursor: not-allowed; }
         .form-radio { color: #FFC107; }
         #map-status { padding: 12px; border-radius: 8px; font-weight: 500; text-align: center; }
         .status-checking { background-color: #FFF3CD; color: #856404; }
@@ -49,9 +48,6 @@
         </div>
 
         <form id="funrunForm" class="p-6 space-y-5">
-            
-            <div id="time-status" class="hidden mb-2 p-3 rounded-lg text-center font-bold text-sm"></div>
-
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">เปิด Location และกดตรวจสอบพิกัด</label>
                 <div id="map-status" class="status-checking">ยังไม่ได้ตรวจสอบพิกัด</div>
@@ -116,21 +112,18 @@
     </div>
 
     <script>
-        // --- เปลี่ยนลิงก์นี้เป็น URL Deploy ใหม่ล่าสุดของคุณเสมอ ---
+        // CONFIGURATION - ดึงค่าจาก Sheet (ตั้งค่าเริ่มต้นเป็น 0)
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyRwj2zuncF6Jp3y3Enmsgh4rBIFpBeasoXhQGaJTqTYaVCJ9GbxtDQ5cJ9_muBx97c/exec";
-        
         let TARGET_LAT = 0; 
         let TARGET_LON = 0; 
         let ALLOWED_RADIUS_KM = 0; 
-        let START_TIME = null;
-        let END_TIME = null;
 
+        // DOM ELEMENTS & STATE
         const form = document.getElementById('funrunForm');
         const submitBtn = document.getElementById('submitBtn');
         const mapStatusDiv = document.getElementById('map-status');
         const studentIdInput = document.getElementById('studentId');
         const fullNameInput = document.getElementById('fullName');
-        const facultySelect = document.getElementById('faculty');
         const cameraContainer = document.getElementById('camera-container');
         const previewContainer = document.getElementById('preview-container');
         const takePhotoWrap = document.getElementById('takePhotoWrap');
@@ -141,76 +134,31 @@
         const takePhotoBtn = document.getElementById('takePhotoBtn');
         const retakeBtn = document.getElementById('retakeBtn');
         const checkLocationBtn = document.getElementById('checkLocationBtn');
-        const timeStatusDiv = document.getElementById('time-status');
         const iabBanner = document.getElementById('iabBanner');
         const copyLinkBtn = document.getElementById('copyLinkBtn');
 
         let userLocation = null, isUserInArea = false, base64Image = null, stream = null;
 
-        function checkTimeStatus() {
-            if (!START_TIME && !END_TIME) return true;
-
-            const now = new Date();
-            const inputsToDisable = [studentIdInput, fullNameInput, facultySelect, checkLocationBtn, openCameraBtn];
-
-            if (START_TIME && now < START_TIME) {
-                timeStatusDiv.textContent = `ระบบจะเปิดให้เช็คอินเวลา ${START_TIME.toLocaleString('th-TH')}`;
-                timeStatusDiv.className = 'mb-4 p-3 rounded-lg text-center font-bold text-sm bg-yellow-100 text-yellow-800';
-                timeStatusDiv.classList.remove('hidden');
-                inputsToDisable.forEach(el => el.disabled = true);
-                return false;
-            } else if (END_TIME && now > END_TIME) {
-                timeStatusDiv.textContent = `ระบบปิดรับการเช็คอินไปแล้วเมื่อเวลา ${END_TIME.toLocaleString('th-TH')}`;
-                timeStatusDiv.className = 'mb-4 p-3 rounded-lg text-center font-bold text-sm bg-red-100 text-red-800';
-                timeStatusDiv.classList.remove('hidden');
-                inputsToDisable.forEach(el => el.disabled = true);
-                return false;
-            } else {
-                timeStatusDiv.textContent = `ระบบเปิดรับเช็คอินถึงเวลา ${END_TIME ? END_TIME.toLocaleString('th-TH') : 'ไม่กำหนด'}`;
-                timeStatusDiv.className = 'mb-4 p-3 rounded-lg text-center font-bold text-sm bg-green-100 text-green-800';
-                timeStatusDiv.classList.remove('hidden');
-                inputsToDisable.forEach(el => el.disabled = false);
-                return true;
-            }
-        }
-
+        // ฟังก์ชันดึงค่าพิกัดจาก Google Sheet
         async function fetchSettings() {
             try {
                 const response = await fetch(SCRIPT_URL);
                 const config = await response.json();
-                
-                TARGET_LAT = config.lat || 0;
-                TARGET_LON = config.lon || 0;
-                ALLOWED_RADIUS_KM = config.radius || 0;
-                
-                if (config.startTime) START_TIME = new Date(config.startTime);
-                if (config.endTime) END_TIME = new Date(config.endTime);
-
-                console.log("ตั้งค่าระบบสำเร็จ:", config);
-                
-                checkTimeStatus();
-                refreshSubmitEnabled();
-                
+                TARGET_LAT = config.lat;
+                TARGET_LON = config.lon;
+                ALLOWED_RADIUS_KM = config.radius;
+                console.log("ตั้งค่าพิกัดสำเร็จ:", config);
             } catch (error) {
                 console.error("โหลดการตั้งค่าล้มเหลว:", error);
             }
         }
 
         function refreshSubmitEnabled() {
-          const isTimeValid = checkTimeStatus();
           const hasPhoto = !!base64Image;
-          
-          submitBtn.disabled = !(isTimeValid && isUserInArea && hasPhoto);
-          
-          if (!isTimeValid) {
-              submitBtn.textContent = 'ระบบอยู่นอกเวลาทำการ';
-          } else if (!isUserInArea) {
-              submitBtn.textContent = 'ไม่สามารถส่งข้อมูลได้ (ยังไม่ยืนยันพิกัด)';
-          } else if (!hasPhoto) {
-              submitBtn.textContent = 'ไม่สามารถส่งข้อมูลได้ (ยังไม่มีรูป)';
-          } else {
-              submitBtn.textContent = 'ส่งข้อมูล';
-          }
+          submitBtn.disabled = !(isUserInArea && hasPhoto);
+          if (!isUserInArea) submitBtn.textContent = 'ไม่สามารถส่งข้อมูลได้ (ยังไม่ยืนยันพิกัด)';
+          else if (!hasPhoto) submitBtn.textContent = 'ไม่สามารถส่งข้อมูลได้ (ยังไม่มีรูป)';
+          else submitBtn.textContent = 'ส่งข้อมูล';
         }
 
         (function detectIAB(){
@@ -321,8 +269,6 @@
 
         form.addEventListener('submit', async function(e) {
             e.preventDefault();
-            
-            if (!checkTimeStatus()) { Swal.fire('อยู่นอกเวลาทำการ!', 'ระบบยังไม่เปิด หรือ ปิดรับการเช็คอินแล้ว', 'warning'); return; }
             if (!isUserInArea) { Swal.fire('อยู่นอกพื้นที่!', 'คุณต้องอยู่ในพื้นที่ที่กำหนดเพื่อส่งข้อมูล', 'warning'); return; }
             if (studentIdInput.value.length !== 8) { Swal.fire('รหัสไม่ถูกต้อง!', 'รหัสนักศึกษาต้องมี 8 หลักเท่านั้น', 'error'); return; }
             if (!base64Image) { Swal.fire('ไม่มีรูปภาพ!', 'กรุณาถ่ายภาพเพื่อยืนยันการเข้าร่วม', 'warning'); return; }
@@ -331,15 +277,12 @@
 
             const userIpAddress = await getIpAddress();
 
-            // ส่งข้อมูลด้วย parameter ชุดใหม่ที่เชื่อมกับ Firebase ถูกต้อง
             const formData = {
-                action: 'checkin',
-                userId: studentIdInput.value,
                 studentId: studentIdInput.value,
                 fullName: fullNameInput.value,
                 faculty: document.getElementById('faculty').value,
-                lat: userLocation?.lat,
-                lng: userLocation?.lon,
+                latitude: userLocation?.lat,
+                longitude: userLocation?.lon,
                 imageData: (base64Image || '').split(',')[1],
                 mimeType: (base64Image || 'data:image/jpeg').split(';')[0].split(':')[1],
                 ipAddress: userIpAddress
@@ -347,6 +290,7 @@
 
             fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', cache: 'no-cache', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(formData) })
             .then(() => {
+                // --- ส่วนที่แก้ไข: แสดงผลชื่อ, เวลา และบังคับให้คลิกลิงก์ประเมินผลโดยซ่อนปุ่มปิดหน้าต่าง ---
                 Swal.fire({
                   icon: 'success',
                   title: 'บันทึกการเข้าร่วมกิจกรรมสำเร็จ',
@@ -365,10 +309,11 @@
                       </a>
                     </div>
                   `,
-                  showConfirmButton: false, 
-                  allowOutsideClick: false,  
-                  allowEscapeKey: false      
+                  showConfirmButton: false, // เอาปุ่มยืนยัน / ปุ่มปิดหน้าต่างออก
+                  allowOutsideClick: false,  // ป้องกันการคลิกพื้นที่ว่างรอบๆ เพื่อปิดแจ้งเตือน
+                  allowEscapeKey: false      // ป้องกันการกดปุ่ม Esc เพื่อปิดแจ้งเตือน
                 });
+                // ------------------------------------------------
 
                 form.reset();
                 base64Image = null;
@@ -387,6 +332,8 @@
         });
 
         checkLocationBtn.addEventListener('click', checkLocation);
+        
+        // โหลดการตั้งค่าทันทีที่เปิดหน้า
         window.onload = fetchSettings;
     </script>
 </body>
